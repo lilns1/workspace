@@ -1,0 +1,7 @@
+dev/
+typora/
+sublime text/
+**/.vscode/
+**/.idea/
+*.exe
+*.prob
