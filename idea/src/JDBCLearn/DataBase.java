@@ -9,15 +9,14 @@ public class DataBase {
         String url = "jdbc:mysql://localhost:3306/student";
         String user  = "root";
         String pass = "123456";
-        System.out.println(Driver.class.getPackage().getImplementationVersion());
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
             conn = DriverManager.getConnection(url, user, pass);
             stmt = conn.createStatement();
             ResultSet rs = stmt.executeQuery("SELECT * FROM student.student;");
-//            while (rs.next()) {
-//                System.out.println(rs.getInt(1) + " ,"  + rs.getString("NAME"));
-//            }
+            while (rs.next()) {
+                System.out.println(rs.getInt(1) + " ,"  + rs.getString("NAME"));
+            }
             rs.close();
             stmt.close();
             conn.close();
