@@ -6,28 +6,24 @@ public class DataBase {
     public static void main(String[] args) {  // 移除 throws 声明
         Connection conn = null;
         Statement stmt = null;
-        String DB_URL = "jdbc:mysql://localhost:3306/javalearn?serverTimezone=UTC";
-        String sql;
-        String user = "root";
-        String password = "123456";
+        String url = "jdbc:mysql://localhost:3306/student";
+        String user  = "root";
+        String pass = "123456";
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
-            conn = DriverManager.getConnection(DB_URL, user, password);
+            conn = DriverManager.getConnection(url, user, pass);
             stmt = conn.createStatement();
-            sql = "Select * from javalearn.student";
-            ResultSet rs = stmt.executeQuery(sql);
+            ResultSet rs = stmt.executeQuery("SELECT * FROM student.student;");
             while (rs.next()) {
-                int id = rs.getInt("ID");
-                String name = rs.getString("Name");
-                String Sex = rs.getString("Sex");
-                String Address = rs.getString("Address");
-                System.out.println(String.format("%d, %s, %s, %s", id, name, Sex, Address));
+                System.out.println(rs.getInt(1) + " ,"  + rs.getString("NAME"));
             }
             rs.close();
             stmt.close();
             conn.close();
-        } catch (SQLException | ClassNotFoundException e) {  // 合并异常捕获
-            e.printStackTrace();
+        } catch (ClassNotFoundException e) {
+            System.out.println(e.getMessage());
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
         }
     }
 }
