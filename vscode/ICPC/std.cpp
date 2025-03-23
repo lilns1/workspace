@@ -9,63 +9,72 @@ using namespace std;
 using ll = long long;
 using ld = long double;
 using PII = pair<int, ll>;
-const int N = 5e4+7, M = 5e4+7;
+const int N = 1e5+7, M = 5e4+7;
 const int inf = 0x3f3f3f3f;
 const ll INF = 1e17;
 const int eps = 1e-8;
 const ll mod = 1e9+7;
 
-int n, dfn[N], low[N], idx, c[N], ins[N], cnt, in[N];
-vector<int> g[N], ng[N];
-stack<int> st;
+int n, c[N], p[N], k[N], in[N], rt;
+ll f[N][3];
+vector<int> g[N];
 
-void tarjan(int x) {
-    dfn[x] = low[x] = ++ idx;
-    st.push(x);
-    ins[x] = 1;
+void dfs(int x) {
+    vector <int> dif; // 存儿子白-黑
+    ll sum = 0, cw, cb;
+    if (c[x] == 0) cw = 0, cb = p[x];
+    else cw = p[x], cb = 0;
     for (const auto &y : g[x]) {
-        if (!dfn[y]) {
-            tarjan(y);
-            low[x] = min(low[x], low[y]);
-        } else if (ins[y])
-            low[x] = min(low[x], dfn[y]);
+        dfs(y);
+        k[x] += k[y];
+        if (k[y] & 1) {
+            sum += f[y][2];
+        } else {
+            sum += f[y][1];
+            dif.push_back(f[y][0] - f[y][1]);
+        }
     }
-    if (dfn[x] == low[x]) {
-        cnt ++;
-        int z;
-        do {
-            z = st.top();
-            c[z] = cnt;
-            ins[z] = 0;
-            st.pop();
-        } while (z != x);
+    sort(dif.begin(), dif.end());
+    int sz = dif.size();
+    if (!sz) {
+        f[x][0] = sum + cw;
+        f[x][1] = sum + cb;
+        return;
+    }
+    if (sz & 1) {
+        int mid = sz / 2;
+        for (int i = 0; i < mid; i ++) {
+            sum += dif[i];
+        }
+        f[x][2] = min(sum + cw, sum + dif[mid] + cb);
+    } else {
+        int mid = sz / 2;
+        for (int i = 0; i < mid; i ++) {
+            sum += dif[i];
+        }
+        f[x][0] = min(sum + cw, sum + dif[mid] + cb);
+        f[x][1] = min(sum + cb, sum - dif[mid - 1] + cw);
     }
 }
 
 void solve() {
+    memset(f, 0x3f, sizeof f);
     cin >> n;
     for (int i = 1; i <= n; i ++) {
-        int v;
-        while (cin >> v, v) {
-            g[i].push_back(v);
+        cin >> c[i] >> p[i] >> k[i];
+        for (int j = 1; j <= k[i]; j ++) {
+            int s;
+            cin >> s;
+            g[i].push_back(s);
+            in[s] ++;
         }
     }
-    for (int i = 1; i <= n; i ++) if (!dfn[i]) {
-        tarjan(i);
+    for (int i = 1; i <= n; i ++) if (!in[i]) {
+        rt = i;
+        break;
     }
-    for (int x = 1; x <= n; x ++) 
-        for (const auto &y : g[x]) {
-            if (c[x] != c[y]) ng[c[x]].push_back(c[y]), in[c[y]] ++;
-        }
-    int ans1 = 0, ans2 = 0;
-    for (int i = 1; i <= cnt; i ++) {
-        if (!in[i]) ans1 ++;
-        if (ng[i].size() == 0) ans2 ++;
-    }
-    cout << ans1 << '\n';
-    if (cnt != 1) {
-        cout << max(ans1, ans2) << '\n';
-    } else cout << "0\n";
+    dfs(rt);
+    cout << min(f[rt][0], min(f[rt][1], f[rt][2])) << '\n';
 }
 
 signed main()
