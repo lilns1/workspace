@@ -8,74 +8,80 @@
 using namespace std;
 using ll = long long;
 using ld = long double;
-using PII = pair<int, ll>;
-const int N = 1e5+7, M = 5e4+7;
+using PII = pair<int, int>;
+const int N = 207, M = N * N;
 const int inf = 0x3f3f3f3f;
 const ll INF = 1e17;
-const int eps = 1e-8;
+const double eps = 1e-8;
 const ll mod = 1e9+7;
 
-int n, c[N], p[N], k[N], in[N], rt;
-ll f[N][3];
+int n, m, match[M];
+double t1, t2, v;
+PII en[N], tw[N];
+bool vis[M];
 vector<int> g[N];
 
-void dfs(int x) {
-    vector <int> dif; // 存儿子白-黑
-    ll sum = 0, cw, cb;
-    if (c[x] == 0) cw = 0, cb = p[x];
-    else cw = p[x], cb = 0;
+double dis(const PII &a, const PII &b) {
+    return sqrt((a.xx - b.xx) * (a.xx - b.xx) + (a.yy - b.yy) * (a.yy - b.yy));
+}
+
+bool find(int x) {
     for (const auto &y : g[x]) {
-        dfs(y);
-        k[x] += k[y];
-        if (k[y] & 1) {
-            sum += f[y][2];
-        } else {
-            sum += f[y][1];
-            dif.push_back(f[y][0] - f[y][1]);
+        if (vis[y]) continue;
+        vis[y] = 1;
+        int t = match[y];
+        if (t == -1 || find(t)) {
+            match[y] = x;
+            return true;
         }
     }
-    sort(dif.begin(), dif.end());
-    int sz = dif.size();
-    if (!sz) {
-        f[x][0] = sum + cw;
-        f[x][1] = sum + cb;
-        return;
-    }
-    if (sz & 1) {
-        int mid = sz / 2;
-        for (int i = 0; i < mid; i ++) {
-            sum += dif[i];
+    return false;
+} 
+
+bool check(double mid) {
+    for (int i = 1; i <= m; i ++) g[i].clear();
+
+    for (int i = 1; i <= m; i ++) {
+        for (int j = 1; j <= n; j ++) {
+            double p = t1 + t2, t = t1 + dis(en[i], tw[j]) / v;
+            int idx = 0;
+            while (t < mid && idx < m) {
+                idx ++;
+                g[i].push_back((j - 1) * m + idx);
+                t += p;
+            }
         }
-        f[x][2] = min(sum + cw, sum + dif[mid] + cb);
-    } else {
-        int mid = sz / 2;
-        for (int i = 0; i < mid; i ++) {
-            sum += dif[i];
-        }
-        f[x][0] = min(sum + cw, sum + dif[mid] + cb);
-        f[x][1] = min(sum + cb, sum - dif[mid - 1] + cw);
     }
+    memset(match, -1, sizeof match);
+    for (int i = 1; i <= m; i ++) {
+        memset(vis, 0, sizeof vis);
+        if (!find(i)) return false;
+    }
+    return true;
 }
 
 void solve() {
-    memset(f, 0x3f, sizeof f);
-    cin >> n;
+    cin >> n >> m >> t1 >> t2 >> v;
+    t1 /= 60;
+    for (int i = 1; i <= m; i ++) {
+        int x, y;
+        cin >> x >> y;
+        en[i] = {x, y};
+    }
     for (int i = 1; i <= n; i ++) {
-        cin >> c[i] >> p[i] >> k[i];
-        for (int j = 1; j <= k[i]; j ++) {
-            int s;
-            cin >> s;
-            g[i].push_back(s);
-            in[s] ++;
-        }
+        int x, y;
+        cin >> x >> y;
+        tw[i] = {x, y};
     }
-    for (int i = 1; i <= n; i ++) if (!in[i]) {
-        rt = i;
-        break;
+    double l = t1, r = 1e5;
+    while (r - l > eps) {
+        double mid = (l + r) / 2;
+        if (check(mid)) r = mid;
+        else l = mid;
     }
-    dfs(rt);
-    cout << min(f[rt][0], min(f[rt][1], f[rt][2])) << '\n';
+    cout << fixed << setprecision(6) << l << '\n';
 }
+
 
 signed main()
 {
