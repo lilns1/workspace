@@ -9,79 +9,91 @@ using namespace std;
 using ll = long long;
 using ld = long double;
 using PII = pair<int, int>;
-const int N = 207, M = N * N;
+const int N = 107, M = N * N;
 const int inf = 0x3f3f3f3f;
 const ll INF = 1e17;
-const double eps = 1e-8;
+const double eps = 1e-10;
 const ll mod = 1e9+7;
 
-int n, m, match[M];
-double t1, t2, v;
-PII en[N], tw[N];
-bool vis[M];
-vector<int> g[N];
+int n;
+double w[N][N], la[N], lb[N], upd[N];
+bool va[N], vb[N];
+int match[N];
+int last[N];
+struct {
+    int x, y;
+}a[N], b[N];
 
-double dis(const PII &a, const PII &b) {
-    return sqrt((a.xx - b.xx) * (a.xx - b.xx) + (a.yy - b.yy) * (a.yy - b.yy));
+bool dfs(int x, int fa) {
+    va[x] = 1;
+    for (int y = 1; y <= n; y ++) 
+        if (!vb[y])
+            if (fabs(la[x] + lb[y] - w[x][y]) < eps) {
+                vb[y] = 1; last[y] = fa;
+                if (!match[y] || dfs(match[y], y)) {
+                    match[y] = x;
+                    return true;
+                }
+            } else if (upd[y] > la[x] + lb[y] - w[x][y] + eps) {
+                upd[y] = la[x] + lb[y] - w[x][y];
+                last[y] = fa;   
+            }
+            return false;
 }
 
-bool find(int x) {
-    for (const auto &y : g[x]) {
-        if (vis[y]) continue;
-        vis[y] = 1;
-        int t = match[y];
-        if (t == -1 || find(t)) {
-            match[y] = x;
-            return true;
-        }
-    }
-    return false;
-} 
-
-bool check(double mid) {
-    for (int i = 1; i <= m; i ++) g[i].clear();
-
-    for (int i = 1; i <= m; i ++) {
+void KM() {
+    for (int i = 1; i <= n; i ++) {
+        la[i] = -1e100;
+        lb[i] = 0;
         for (int j = 1; j <= n; j ++) {
-            double p = t1 + t2, t = t1 + dis(en[i], tw[j]) / v;
-            int idx = 0;
-            while (t < mid && idx < m) {
-                idx ++;
-                g[i].push_back((j - 1) * m + idx);
-                t += p;
-            }
+            la[i] = max(la[i], w[i][j]);
         }
     }
-    memset(match, -1, sizeof match);
-    for (int i = 1; i <= m; i ++) {
-        memset(vis, 0, sizeof vis);
-        if (!find(i)) return false;
+
+    for (int i = 1; i <= n; i ++) {
+        memset(va, 0, sizeof va);
+        memset(vb, 0, sizeof vb)    ;
+        for (int j = 1; j <= n; j ++) upd[j] = 1e10;
+        int st = 0; match[0] = i;
+        while (match[st]) {
+            double delta = 1e10;
+            if (dfs(match[st], st)) break;
+            for (int j = 1; j <= n; j ++) 
+                if (!vb[j] && delta > upd[j]) {
+                    delta = upd[j];
+                    st = j;
+                }
+            for (int j = 1; j <= n; j ++) {
+                if (va[j]) la[j] -= delta;
+                if (vb[j]) lb[j] += delta; else upd[j] -= delta;
+            }
+            vb[st] = true;
+        }
+        while (st) {
+            match[st] = match[last[st]];
+            st = last[st];
+        }
     }
-    return true;
 }
 
 void solve() {
-    cin >> n >> m >> t1 >> t2 >> v;
-    t1 /= 60;
-    for (int i = 1; i <= m; i ++) {
-        int x, y;
-        cin >> x >> y;
-        en[i] = {x, y};
+    cin >> n;
+    for (int i = 1; i <= n; i ++) {
+        cin >> b[i].x >> b[i].y;
     }
     for (int i = 1; i <= n; i ++) {
-        int x, y;
-        cin >> x >> y;
-        tw[i] = {x, y};
+        cin >> a[i].x >> a[i].y;
     }
-    double l = t1, r = 1e5;
-    while (r - l > eps) {
-        double mid = (l + r) / 2;
-        if (check(mid)) r = mid;
-        else l = mid;
+    for (int i = 1; i <= n; i ++) {
+        for (int j = 1; j <= n; j ++) {
+            w[i][j] = -sqrt((a[i].x - b[j].x) * (a[i].x - b[j].x) + (a[i].y - b[j].y) * (a[i].y - b[j].y));
+        }
     }
-    cout << fixed << setprecision(6) << l << '\n';
+    KM();
+    for (int i = 1; i <= n; i ++) {
+        cout << match[i] << '\n';
+    }
 }
-
 
 signed main()
 {

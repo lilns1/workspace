@@ -1,197 +1,79 @@
+#include<iostream>
 #include<cstdio>
 #include<cstring>
-#include<iostream>
 #include<algorithm>
 #include<queue>
+#include<cmath>
 using namespace std;
+const int N = 105;
+const double eps = 1e-10;
+double w[N][N]; // 边权
+double la[N], lb[N], upd[N]; // 左、右部点的顶标
+bool va[N], vb[N]; // 访问标记：是否在交错树中
+int match[N]; // 右部点匹配了哪一个左部点
+int last[N]; // 右部点在交错树中的上一个右部点，用于倒推得到交错路
+int n;
+struct {int x, y;} a[N], b[N];
 
-typedef long long LL;
-
-const int N = 100010, M = 300010, INF = 0x3f3f3f3f;
-
-int n, m;
-struct Edge
-{
-    int a, b, w;
-    bool used;
-    bool operator< (const Edge &t) const
-    {
-        return w < t.w;
-    }
-}edge[M];
-int p[N];
-int h[N], e[M], w[M], ne[M], idx;
-int depth[N], fa[N][17], d1[N][17], d2[N][17];//log2(1e5)=16  d1最大边 d2次大边
-
-void add(int a,int b,int c)
-{
-    e[idx] = b,ne[idx] = h[a],w[idx] = c,h[a] = idx++;
-}
-
-int find(int x)
-{
-    if(x!=p[x])p[x]= find(p[x]);
-    return p[x];
-}
-
-LL kruskal()
-{
-    for (int i = 1; i <= n; i ++ ) p[i] = i;
-    sort(edge, edge + m);
-    LL res = 0;
-    for (int i = 0; i < m; i ++ )
-    {
-        int a = find(edge[i].a), b = find(edge[i].b), w = edge[i].w;
-        if (a != b)
-        {
-            p[a] = b;
-            res += w;
-            edge[i].used = true;
-        }
-    }
-
-    return res;
-}
-
-void build()
-{
-    memset(h,-1,sizeof h);
-    for(int i = 0;i<m;i++)
-    {
-        if(edge[i].used)
-        {
-            int a = edge[i].a,b = edge[i].b,w = edge[i].w;
-            add(a,b,w),add(b,a,w);
-        }
-    }
-}
-
-void bfs()
-{
-    memset(depth,0x3f,sizeof depth);
-    depth[0] = 0,depth[1] = 1;//哨兵0 根节点1
-    queue<int> q;
-    q.push(1);
-    while(q.size())
-    {
-        int t = q.front();
-        q.pop();//日常漏
-        for(int i = h[t];~i;i=ne[i])
-        {
-            int j = e[i];
-            // j没有被遍历过
-            if(depth[j]>depth[t]+1)
-            {
-                depth[j] = depth[t]+1;
-                q.push(j);
-                fa[j][0] = t;
-                d1[j][0] = w[i],d2[j][0] = -INF;
-                for(int k = 1;k<=16;k++)
-                {
-/*
-                         →   →
-                       o---o---o
-                       j  anc  
-        d1[i,k-1],d2[i,k-1]  d1[anc,k-1],d2[anc,k-1]
-*/
-                    int anc = fa[j][k - 1];
-                    fa[j][k] = fa[anc][k - 1];
-                    int distance[4] = {d1[j][k - 1], d2[j][k - 1], d1[anc][k - 1], d2[anc][k - 1]};
-                    //初始化d1[j][k]和d2[j][k]
-                    d1[j][k] = d2[j][k] = -INF;
-                    for (int u = 0; u < 4; u ++ )
-                    {
-                        int d = distance[u];
-                        // 更新最大值d1和次大值d2
-                        if (d > d1[j][k]) d2[j][k] = d1[j][k], d1[j][k] = d;
-                        // 严格次大值
-                        else if (d != d1[j][k] && d > d2[j][k]) d2[j][k] = d;
-                    }
+bool dfs(int x, int fa) {
+    va[x] = 1;
+    for (int y = 1; y <= n; y++)
+        if (!vb[y])
+            if (fabs(la[x] + lb[y] - w[x][y]) < eps) { // 相等子图
+                vb[y] = 1; last[y] = fa;
+                if (!match[y] || dfs(match[y], y)) {
+                    match[y] = x;
+                    return true;
                 }
             }
-        }
-    }
-}
-// lca求出a, b之间的最大边权与次大边权
-int lca(int a,int b,int w)
-{
-    static int distance[N * 2];
-    int cnt = 0;
-    // a和b中取深度更深的作为a先跳
-    if (depth[a] < depth[b]) swap(a, b); 
-    for (int k = 16; k >= 0; k -- )
-    // 如果a 跳2^k后的深度比b深度大 则a继续跳
-    // 直到两者深度相同 depth[a] == depth[b]
-        if (depth[fa[a][k]] >= depth[b])
-        {
-            distance[cnt ++ ] = d1[a][k];
-            distance[cnt ++ ] = d2[a][k];
-            a = fa[a][k];
-        }
-    // 如果a和b深度相同 但此时不是同一个点 两个同时继续向上跳
-    if (a != b)
-    {
-        for (int k = 16; k >= 0; k -- )
-            if (fa[a][k] != fa[b][k])
-            {
-                distance[cnt ++ ] = d1[a][k];
-                distance[cnt ++ ] = d2[a][k];
-                distance[cnt ++ ] = d1[b][k];
-                distance[cnt ++ ] = d2[b][k];
-                a = fa[a][k], b = fa[b][k];
+            else if (upd[y] > la[x] + lb[y] - w[x][y] + eps) {
+                upd[y] = la[x] + lb[y] - w[x][y];
+                last[y] = fa;
             }
-        // 此时a和b到lca下同一层 所以还要各跳1步=跳2^0步
-        distance[cnt ++ ] = d1[a][0];
-        distance[cnt ++ ] = d1[b][0];
-    }
-    // 找a,b两点距离的最大值dist1和次大值dist2
-    int dist1 = -INF, dist2 = -INF;
-    for (int i = 0; i < cnt; i ++ )
-    {
-        int d = distance[i];
-        if (d > dist1) dist2 = dist1, dist1 = d;
-        else if (d != dist1 && d > dist2) dist2 = d;
-    }
-    // ⭐ dist1和dist2是a和b之间的最大边权和次大边权  所以可以用w替换而仍然保持生成树(包含所有节点)
-    // 因为加入w这条边 原来的树会形成环 
-
-    // 删除环中边权最大的边（如果最大的边和加入的边相等，那么删去次大边）。
-    // 如果w>这条路的最大边 w替换dist1
-    if (w > dist1) return w - dist1;
-    // 否则w==dist1 w替换dist2
-    if (w > dist2) return w - dist2;
-    // 不加这个return INF也是可以的 
-    // ⭐因为非树边w的值域是一定≥dist1 否则在之前kruskal求最小生成树的时候把w替换dist1连接a和b就得到一个更小的生成树了 矛盾
-    // 所以最坏情况是w==dist1
-    // return INF;
+            return false;
 }
 
-int main()
-{
-    scanf("%d%d", &n, &m);
-    for (int i = 0; i < m; i ++ )
-    {
-        int a, b, c;
-        scanf("%d%d%d", &a, &b, &c);
-        edge[i] = {a, b, c};
+void KM() {
+    for (int i = 1; i <= n; i++) {
+        la[i] = -1e100;
+        lb[i] = 0;
+        for (int j = 1; j <= n; j++)
+            la[i] = max(la[i], w[i][j]);
     }
-    // kruskal建最小树(把用到的边标记)
-    int sum = kruskal();
-    // 对标记的边建图
-    build();
-
-    bfs();
-
-    int res = 1e9;
-    //从前往后枚举非树边
-    for (int i = 0; i < m; i ++ )
-        if (!edge[i].used)
-        {
-            int a = edge[i].a, b = edge[i].b, w = edge[i].w;
-            // lca(a,b,w) 返回用w替换w[i] 的差值  = w-w[i]
-            res = min(res, sum + lca(a, b, w));
+    for (int i = 1; i <= n; i++) {
+        memset(va, 0, sizeof(va));
+        memset(vb, 0, sizeof(vb));
+        for (int j = 1; j <= n; j++) upd[j] = 1e10;
+        // 从右部点st匹配的左部点match[st]开始dfs，一开始假设有一条0-i的匹配
+        int st = 0; match[0] = i;
+        while (match[st]) { // 当到达一个非匹配点st时停止
+            double delta = 1e10;
+            if (dfs(match[st], st)) break;
+            for (int j = 1; j <= n; j++)
+                if (!vb[j] && delta > upd[j]) {
+                    delta = upd[j];
+                    st = j; // 下一次直接从最小边开始DFS
+                }
+            for (int j = 1; j <= n; j++) { // 修改顶标
+                if (va[j]) la[j] -= delta;
+                if (vb[j]) lb[j] += delta; else upd[j] -= delta;
+            }
+            vb[st] = true;
         }
-    printf("%lld\n", sum);
+        while (st) { // 倒推更新增广路
+            match[st] = match[last[st]];
+            st = last[st];
+        }
+    }
+}
 
-    return 0;
+int main() {
+    cin >> n;
+    for (int i = 1; i <= n; i++) scanf("%d%d", &b[i].x, &b[i].y);
+    for (int i = 1; i <= n; i++) scanf("%d%d", &a[i].x, &a[i].y);
+    for (int i = 1; i <= n; i++)
+        for (int j = 1; j <= n; j++)
+            w[i][j] = -sqrt((a[i].x - b[j].x) * (a[i].x - b[j].x) + (a[i].y - b[j].y) * (a[i].y - b[j].y));
+    KM();
+    for (int i = 1; i <= n; i++) printf("%d\n", match[i]);
 }
