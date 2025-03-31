@@ -6,4 +6,4 @@ sublime text/
 *.exe
 *.prob
 *.iml
-
+**/build/
