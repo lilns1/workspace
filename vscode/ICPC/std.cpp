@@ -1,106 +1,96 @@
-// #pragma GCC optimize(2)
-#include<bits/stdc++.h>
-#define xx first
-#define yy second
-// #define ls u * 2
-// #define rs u * 2 + 1
-// #define int long long
+#include <iostream>
+#include <cstdio>
+#include <cstring>
+#include <algorithm>
+#include <vector>
+#include <cmath>
 using namespace std;
 using ll = long long;
-using ld = long double;
-using PII = pair<int, int>;
-const int N = 107, M = N * N;
-const int inf = 0x3f3f3f3f;
-const ll INF = 1e17;
-const double eps = 1e-10;
-const ll mod = 1e9+7;
 
-int n;
-double w[N][N], la[N], lb[N], upd[N];
-bool va[N], vb[N];
-int match[N];
-int last[N];
-struct {
-    int x, y;
-}a[N], b[N];
+const int N = 1e5 + 7;
 
-bool dfs(int x, int fa) {
-    va[x] = 1;
-    for (int y = 1; y <= n; y ++) 
-        if (!vb[y])
-            if (fabs(la[x] + lb[y] - w[x][y]) < eps) {
-                vb[y] = 1; last[y] = fa;
-                if (!match[y] || dfs(match[y], y)) {
-                    match[y] = x;
-                    return true;
-                }
-            } else if (upd[y] > la[x] + lb[y] - w[x][y] + eps) {
-                upd[y] = la[x] + lb[y] - w[x][y];
-                last[y] = fa;   
-            }
-            return false;
+int n, m, k;
+int w[N], len;
+
+struct Query {
+    int id, l, r;
+    ll res;
+}q[N];
+
+struct Change {
+    int id, l, r, t;
+};
+vector<Change> change[N];
+
+ll ans[N];
+int f[N], g[N];
+
+int count_bin(int x) {
+    int res = 0;
+    while (x) res += x & 1, x >>= 1;
+    return res;
 }
 
-void KM() {
-    for (int i = 1; i <= n; i ++) {
-        la[i] = -1e100;
-        lb[i] = 0;
-        for (int j = 1; j <= n; j ++) {
-            la[i] = max(la[i], w[i][j]);
-        }
-    }
-
-    for (int i = 1; i <= n; i ++) {
-        memset(va, 0, sizeof va);
-        memset(vb, 0, sizeof vb)    ;
-        for (int j = 1; j <= n; j ++) upd[j] = 1e10;
-        int st = 0; match[0] = i;
-        while (match[st]) {
-            double delta = 1e10;
-            if (dfs(match[st], st)) break;
-            for (int j = 1; j <= n; j ++) 
-                if (!vb[j] && delta > upd[j]) {
-                    delta = upd[j];
-                    st = j;
-                }
-            for (int j = 1; j <= n; j ++) {
-                if (va[j]) la[j] -= delta;
-                if (vb[j]) lb[j] += delta; else upd[j] -= delta;
-            }
-            vb[st] = true;
-        }
-        while (st) {
-            match[st] = match[last[st]];
-            st = last[st];
-        }
-    }
+int get(int x) {
+    return x / len;
 }
 
-void solve() {
-    cin >> n;
+int main() {
+    ios::sync_with_stdio(0), cin.tie(0), cout.tie(0);
+
+    cin >> n >> m >> k;
+    vector<int> num;
+    for (int i = 0; i < (1 << 14); i ++) 
+        if (count_bin(i) == k) num.push_back(i);
+    
+    len = sqrt(n);
+
+    for (int i = 1; i <= n; i ++) cin >> w[i];
+
     for (int i = 1; i <= n; i ++) {
-        cin >> b[i].x >> b[i].y;
+        for (int y : num) g[y ^ w[i]] ++;
+        f[i] = g[w[i + 1]];
     }
-    for (int i = 1; i <= n; i ++) {
-        cin >> a[i].x >> a[i].y;
+
+    for (int i = 1; i <= m; i ++) {
+        int l, r;
+        cin >> l >> r;
+        q[i] = {i, l, r, 0};
     }
+    
+    sort(q + 1, q + 1 + m, [](const Query &a, const Query &b) {
+        int i = get(a.l), j = get(b.l);
+        if (i != j) return i < j;
+        return a.r < b.r;
+    });
+
+    for (int i = 1, L = 1, R = 0; i <= m; i ++) {
+        int l = q[i].l, r = q[i].r;
+        ll &res = q[i].res;
+        if (R < r) change[L - 1].push_back({i, R + 1, r, -1});
+        while (R < r) res += f[R ++];
+        if (R > r) change[L - 1].push_back({i, r + 1, R, 1});
+        while (R > r) res -= f[-- R];
+        if (L < l) change[R].push_back({i, L, l - 1, -1});  
+        while (L < l) res += f[L - 1] + !k, L ++;
+        if (L > l) change[R].push_back({i, l, L - 1, 1});
+        while (L > l) res -= f[L - 2] + !k, L --;
+    }
+
+    memset(g, 0, sizeof g);
     for (int i = 1; i <= n; i ++) {
-        for (int j = 1; j <= n; j ++) {
-            w[i][j] = -sqrt((a[i].x - b[j].x) * (a[i].x - b[j].x) + (a[i].y - b[j].y) * (a[i].y - b[j].y));
+        for (int y : num) g[w[i] ^ y] ++;
+
+        for (auto &rg : change[i]) {
+            int id = rg.id, l = rg.l, r = rg.r, t = rg.t;
+            for (int j = l; j <= r; j ++)
+                q[id].res += g[w[j]] * t; 
         }
     }
-    KM();
-    for (int i = 1; i <= n; i ++) {
-        cout << match[i] << '\n';
-    }
-}
 
-signed main()
-{
-    ios::sync_with_stdio(0), cin.tie(0);
-    cout.tie(0);
-    int tt = 1;
-    // cin >> tt;
-    while(tt --) solve();
+    for (int i = 2; i <= m; i ++) q[i].res += q[i - 1].res;
+    for (int i = 1; i <= m; i ++) ans[q[i].id] = q[i].res;
+    for (int i = 1; i <= m; i ++) cout << ans[i] << '\n';
+
     return 0;
 }
