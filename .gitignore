@@ -8,3 +8,17 @@ sublime text/
 *.iml
 **/build/
 **/.cph
+*.bin
+std
+
+# macOS specific files
+.DS_Store
+.AppleDouble
+.LSOverride
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+*.yml
+*.plist

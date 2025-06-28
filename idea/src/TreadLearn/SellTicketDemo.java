@@ -37,7 +37,7 @@ public class SellTicketDemo {
         FutureTask<Integer> task = new FutureTask<Integer>(
                 (Callable<Integer>) () -> {
                     return 1;
-                }uu
+                }
         );
     }
 }
